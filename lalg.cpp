@@ -13,35 +13,96 @@ void init(const mat_ZZ& B, const long m, vec_long& P, mat_ZZ& Prod, mat_RR & MU,
 
 void reduce(const long m, vec_long& P, const mat_RR& MU, const long& k, const long& r, long& j, long& q);
 
-void alter(mat_ZZ& B, const long& m, const vec_long& P, mat_ZZ& Prod, mat_RR& MU, RR& mu, const long& k, const long& j, const long& q);
+void alter(mat_ZZ& B, const long& m, const vec_long& P, mat_ZZ& Prod, mat_RR& MU, const long& k, const long& j, const long& q);
 
 void rearrange(const long& m, vec_long& P, const mat_RR& MU, const long& r);
 
+void mumax(const long& m, const mat_RR& MU, RR& mu);
+
 static float lreduction(mat_ZZ& B);
 
-int main(int argc, char* argv[])
+int main()//int argc, char* argv[])
 {
-    std::ofstream outfile;
-    outfile.open("output");
-    std::ifstream infile;
-    infile.open("input");
-
-    long m, n, q;
-    float p;
-
-    /* m: challenge lattice dimension
-       n: reference dimension
-       q: modulus
-       B: challenge lattice basis */
-    infile >> m >> n >> q;
+    long m = 5;
+    ZZ bound;
+    bound = 10;
     mat_ZZ B;
     B.SetDims(m, m);
-    infile >> B;
-    infile.close();
 
-    p = lreduction(B);
+    for(long i = 0; i < m; i++){
+        for(long j = 0; j < m; j++){
+            RandomBnd(B[i][j], bound);
+        }
+    }
 
-    outfile.close();
+    // permutation of B
+    vec_long P;
+    P.SetLength(m);
+    // innerproduct of vectors
+    mat_ZZ Prod;
+    Prod.SetDims(m, m);
+    // \mu matrix
+    mat_RR MU;
+    MU.SetDims(m, m);
+    // \mu_{max};
+    RR mu, mu_old, detmu_start, detmu_end, optrate;
+
+    init(B, m, P, Prod, MU, mu);
+    determinant(detmu_start, MU);
+
+    std::cout
+        << "basis:\n" << B << std::endl
+        << "innerproduct:\n" << Prod << std::endl
+        << "mu matrix:\n" << MU << std::endl
+        << "\n\nmu max:\n" << mu << std::endl
+        << std::endl;
+
+    long r, k, j, q;
+    for(long loop = 0; loop < 3; loop++){
+        for(r = 0; r < m; r++){
+            for(k = r + 1; k < m; k++){
+                reduce(m, P, MU, k, r, j, q);
+                alter(B, m, P, Prod, MU, k, j, q);
+            }
+        }
+    }
+
+    determinant(detmu_end, MU);
+    div(optrate, detmu_end, detmu_start);
+    mumax(m, MU, mu);
+
+    std::cout << "------------------------" << std::endl;
+
+    std::cout
+        //<< "basis:\n" << B
+        << "\n\ninnerproduct:\n" << Prod
+        << "\n\nmu matrix:\n" << MU
+        << "\n\nmu max:\n" << mu
+        << std::endl;
+
+    std::cout << "optimize rate: " << optrate << std::endl;
+
+    //std::ofstream outfile;
+    //outfile.open("output");
+    //std::ifstream infile;
+    //infile.open("input");
+
+    //long m, n, q;
+    //float p;
+
+    /* m: challenge lattice dimension
+n: reference dimension
+q: modulus
+B: challenge lattice basis */
+    //infile >> m >> n >> q;
+    //mat_ZZ B;
+    //B.SetDims(m, m);
+    //infile >> B;
+    //infile.close();
+
+    //p = lreduction(B);
+
+    //outfile.close();
 
     return 0;
 }
@@ -106,7 +167,7 @@ void rearrange(const long& m, vec_long& P, const mat_RR& MU, const long& r)
     }
 }
 
-void alter(mat_ZZ& B, const long& m, const vec_long& P, mat_ZZ& Prod, mat_RR& MU, RR& mu, const long& k, const long& j, const long& q)
+void alter(mat_ZZ& B, const long& m, const vec_long& P, mat_ZZ& Prod, mat_RR& MU, const long& k, const long& j, const long& q)
 {
     if(q){
         ZZ tz;
@@ -115,24 +176,25 @@ void alter(mat_ZZ& B, const long& m, const vec_long& P, mat_ZZ& Prod, mat_RR& MU
         // B[P[k]] = B[P[k]] + q * B[P[j]]
         for(r = 0; r < m; r++){
             mul(tz, q, B[P[j]][P[r]]);
-            add(B[P[k]][P[r]], B[P[k]][P[r]], tz);
+            sub(B[P[k]][P[r]], B[P[k]][P[r]], tz);
         }
 
-        // B[P[k]][P[k]] = B[P[k]][P[k]]^2 + q^2 B[P[j]][P[j]] + 2q B[P[k]][P[j]]
-        mul(tz, q * q, Prod[P[j]][P[j]]);
-        add(Prod[P[k]][P[k]], Prod[P[k]][P[k]], tz);
-        mul(tz, 2 * q, Prod[P[k]][P[j]]);
-        add(Prod[P[k]][P[k]], Prod[P[k]][P[k]], tz);
+        // Prod[P[k]][P[k]] = Prod[P[k]][P[k]]^2 + q^2 Prod[P[j]][P[j]] + 2q Prod[P[k]][P[j]]
+        //mul(tz, q * q, Prod[P[j]][P[j]]);
+        //add(Prod[P[k]][P[k]], Prod[P[k]][P[k]], tz);
+        //mul(tz, 2 * q, Prod[P[k]][P[j]]);
+        //add(Prod[P[k]][P[k]], Prod[P[k]][P[k]], tz);
+        InnerProduct(Prod[P[k]][P[k]], B[P[k]], B[P[k]]);
 
-        // B[P[r]][P[k]] = B[P[k]][P[r]] = B[P[k]][P[r]] + q * B[P[j]][P[r]]
+        // Prod[P[r]][P[k]] = Prod[P[k]][P[r]] = Prod[P[k]][P[r]] + q * Prod[P[j]][P[r]]
         for(r = 0; r < k; r++){
             mul(tz, q, Prod[P[j]][P[r]]);
-            add(Prod[P[k]][P[r]], Prod[P[k]][P[r]], tz);
+            sub(Prod[P[k]][P[r]], Prod[P[k]][P[r]], tz);
             Prod[P[r]][P[k]] = Prod[P[k]][P[r]];
         }
         for(r = k + 1; r < m; r++){
             mul(tz, q, Prod[P[j]][P[r]]);
-            add(Prod[P[k]][P[r]], Prod[P[k]][P[r]], tz);
+            sub(Prod[P[k]][P[r]], Prod[P[k]][P[r]], tz);
             Prod[P[r]][P[k]] = Prod[P[k]][P[r]];
         }
 
@@ -140,19 +202,16 @@ void alter(mat_ZZ& B, const long& m, const vec_long& P, mat_ZZ& Prod, mat_RR& MU
         // MU[P[r]][P[k]] = Prod[P[r]][P[k]]/Prod[P[k]][P[k]]
         for(r = 0; r < m; r++){
             mul(tr, q, MU[P[j]][P[r]]);
-            add(MU[P[k]][P[r]], MU[P[k]][P[r]], tr);
+            sub(MU[P[k]][P[r]], MU[P[k]][P[r]], tr);
             abs(tr, MU[P[k]][P[r]]);
-            if(mu < tr){
-                mu = tr;
-            }
+
             conv(tr, Prod[P[r]][P[k]]);
             conv(tr1, Prod[P[k]][P[k]]);
             div(MU[P[r]][P[k]], tr, tr1);
             abs(tr, MU[P[r]][P[k]]);
-            if(mu < tr){
-                mu = tr;
-            }
         }    
+    }else{
+        // do nothing
     }
 }
 
@@ -160,36 +219,53 @@ void reduce(const long m, vec_long& P, const mat_RR& MU, const long& k, const lo
 {
     j = 1;
     q = 0;
+    long tq;
     RR alpha = abs(MU[P[k]][P[r]]), talpha, tr;
 
     for(long l = 0; l < k; l++){
-        if(MU[l][r] != 0){
-            div(tr, MU[k][r], MU[l][r]);
+        if(MU[P[l]][P[r]] != 0){
+            div(tr, MU[P[k]][P[r]], MU[P[l]][P[r]]);
             round(tr, tr);
-            mul(tr, tr, MU[l][r]);
-            sub(tr, MU[k][r], tr);
+            conv(tq, tr);
+            mul(tr, tr, MU[P[l]][P[r]]);
+            sub(tr, MU[P[k]][P[r]], tr);
             abs(talpha, tr);
             if(alpha > talpha){
                 j = l;
-                conv(q, tr);
+                q = tq;
                 alpha = talpha;
             }
         }else{}
     }
     for(long l = k + 1; l < m; l++){
-        if(MU[l][r] != 0){
-            div(tr, MU[k][r], MU[l][r]);
+        if(MU[P[l]][P[r]] != 0){
+            div(tr, MU[P[k]][P[r]], MU[P[l]][P[r]]);
             round(tr, tr);
-            mul(tr, tr, MU[l][r]);
-            sub(tr, MU[k][r], tr);
+            conv(tq, tr);
+            mul(tr, tr, MU[P[l]][P[r]]);
+            sub(tr, MU[P[k]][P[r]], tr);
             abs(talpha, tr);
             if(alpha > talpha){
                 j = l;
-                conv(q, tr);
+                q = tq;
                 alpha = talpha;
             }
         }else{
             // do nothing
+        }
+    }
+}
+
+void mumax(const long& m, const mat_RR& MU, RR& mu)
+{
+    mu = 0;
+    RR tr;
+    for(long i = 0; i < m; i++){
+        for (long j = 0; j < i; j++){
+            abs(tr, MU[i][j]);
+            if(mu < tr){
+                mu = tr;
+            }
         }
     }
 }
@@ -224,10 +300,11 @@ static float lreduction(mat_ZZ& B)
             for(r = 0; r < m; r++){
                 for(k = r + 1; k < m; k++){
                     reduce(m, P, MU, k, r, j, q);
-                    alter(B, m, P, Prod, MU, mu, k, j, q);
+                    alter(B, m, P, Prod, MU, k, j, q);
                 }
                 rearrange(m, P, MU, r);
             }
+            mumax(m, MU, mu);
             loop++;
         }
 

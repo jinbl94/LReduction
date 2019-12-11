@@ -1,5 +1,5 @@
-TARGET=olll
-OBJS=olll.o
+TARGET=lalg
+OBJS=lalg.o
 CC=g++
 FLAGS= -lntl -g
 
