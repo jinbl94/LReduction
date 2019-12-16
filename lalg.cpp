@@ -1,48 +1,6 @@
 #include "lalg.h"
 
-int main()//int argc, char* argv[])
-{
-    long m = 5;
-    long r = 3;
-    ZZ bound;
-    bound = 10;
-
-    //std::ofstream outfile;
-    //outfile.open("output");
-    //std::ifstream infile;
-    //infile.open("input");
-
-    //long m, n, q;
-    float oprate;
-
-    /* m: challenge lattice dimension
-       n: reference dimension
-       q: modulus
-       B: challenge lattice basis
-       */
-    //infile >> m >> n >> q;
-    mat_RR B;
-    B.SetDims(m, m);
-    for(long i = 0; i < m; i++){
-        for(long j = 0; j < m; j++){
-            //RandomBnd(B[i][j], bound);
-            random(B[i][j]);
-        }
-    }
-    B[r][r] = 1;
-    RR maxrow;
-    MaxRow(m, B[r], r, maxrow);
-    //infile >> B;
-    //infile.close();
-
-    //oprate = lreduction(B);
-
-    //outfile.close();
-
-    return 0;
-}
-
-void init(const mat_ZZ& B, const long m, vec_long& P, mat_ZZ& Prod, mat_RR & MU) // init all parameters
+void Init(const mat_ZZ& B, const long m, vec_long& P, mat_ZZ& Prod, mat_RR & MU) // init all parameters
 {
     RR tr1, tr2;
 
@@ -77,7 +35,7 @@ void init(const mat_ZZ& B, const long m, vec_long& P, mat_ZZ& Prod, mat_RR & MU)
     }
 }
 
-void rearrange(const long& m, vec_long& P, const mat_ZZ& Prod)
+void Rearrange(const long& m, vec_long& P, const mat_ZZ& Prod)
 {
     ZZ tz;
     long tl, i, j;
@@ -95,7 +53,7 @@ void rearrange(const long& m, vec_long& P, const mat_ZZ& Prod)
     }
 }
 
-void alter(mat_ZZ& B, const long& m, const vec_long& P, mat_ZZ& Prod, mat_RR& MU, const long& k, const long& j, const long& q)
+void Alter(mat_ZZ& B, const long& m, const vec_long& P, mat_ZZ& Prod, mat_RR& MU, const long& k, const long& j, const long& q)
 {
     if(q){
         ZZ tz;
@@ -334,7 +292,7 @@ void RowReduce(const long m, const mat_RR& MU, const long& row, long& j, long& q
     }
 }
 
-void mumax(const long& m, const mat_RR& MU, RR& mu)
+void MUMax(const long& m, const mat_RR& MU, RR& mu)
 {
     mu = 0;
     RR tr;
@@ -352,7 +310,7 @@ void mumax(const long& m, const mat_RR& MU, RR& mu)
     }
 }
 
-static float lreduction(mat_ZZ& B)
+static float LReduction(mat_ZZ& B)
 {
     const long m = B.NumRows();
     const long n = B.NumCols();
@@ -373,8 +331,8 @@ static float lreduction(mat_ZZ& B)
     // \mu_{max};
     RR mu, mu_old, detmu_start, detmu_end, optrate;
 
-    init(B, m, P, Prod, MU);
-    mumax(m, MU, mu);
+    Init(B, m, P, Prod, MU);
+    MUMax(m, MU, mu);
     determinant(detmu_start, MU);
 
     std::cout
@@ -385,19 +343,19 @@ static float lreduction(mat_ZZ& B)
 
     while(loop < 10){
         for(r = 0; r < m; r++){
-            rearrange(m, P, Prod);
+            Rearrange(m, P, Prod);
             RowReduce(m, MU, P[r], j, q);
-            alter(B, m, P, Prod, MU, k, j, q);
+            Alter(B, m, P, Prod, MU, k, j, q);
             //for(k = r + 1; k < m; k++){
             //    reduce(m, P, MU, k, r, j, q);
-            //    alter(B, m, P, Prod, MU, k, j, q);
+            //    Alter(B, m, P, Prod, MU, k, j, q);
             //}
         }
         loop++;
     }
 
     determinant(detmu_end, MU);
-    mumax(m, MU, mu);
+    MUMax(m, MU, mu);
     div(optrate, detmu_end, detmu_start);
     conv(result, optrate);
 
