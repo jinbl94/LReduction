@@ -23,7 +23,7 @@ void Init(const mat_ZZ& B, const long m, vec_long& P, mat_ZZ& Prod, mat_RR & MU)
 void Reduce(const long m, vec_long& P, const mat_RR& MU, const long& k, const long& r, long& j, long& q);
 
 // Apply the combinatino to the basis and update related parameters
-void Alter(mat_ZZ& B, const long& m, const vec_long& P, mat_ZZ& Prod, mat_RR& MU, const long& k, const long& j, const long& q);
+void Alter(mat_ZZ& B, const long& m, mat_ZZ& Prod, mat_RR& MU, const long& row, const long& j, const long& q);
 
 // Rearrange the basis according to some standard
 void Rearrange(const long& m, vec_long& P, const mat_ZZ& Prod);

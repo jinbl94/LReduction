@@ -1,12 +1,12 @@
-TARGET=lalg
-OBJS=lalg.o
+TARGET=main
+OBJS=main.o lalg.o
 CC=g++
 FLAGS= -lntl -g
 
 default:$(TARGET)
 $(TARGET):$(OBJS)
 	$(CC) $(OBJS) -o $(TARGET) $(FLAGS)
-$(OBJS):%.o:%.cpp
+%.o:%.cpp %.h
 	$(CC) -c $< -o $@
 
 .PHONY:clean

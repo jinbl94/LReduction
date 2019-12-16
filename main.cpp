@@ -21,17 +21,20 @@ int main()//int argc, char* argv[])
        B: challenge lattice basis
        */
     //infile >> m >> n >> q;
-    mat_RR B;
+    long sign;
+    mat_ZZ B;
     B.SetDims(m, m);
     for(long i = 0; i < m; i++){
         for(long j = 0; j < m; j++){
             //RandomBnd(B[i][j], bound);
-            random(B[i][j]);
+            RandomBnd(B[i][j], bound);
+            RandomBnd(sign, 2);
+            if(sign){
+                negate(B[i][j], B[i][j]);
+            }
         }
     }
-    B[r][r] = 1;
-    RR maxrow;
-    MaxRow(m, B[r], r, maxrow);
+
     //infile >> B;
     //infile.close();
 
