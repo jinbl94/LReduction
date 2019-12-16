@@ -18,10 +18,6 @@ static float LReduction(mat_ZZ& B);
 // Initialize all parameters
 void Init(const mat_ZZ& B, const long m, vec_long& P, mat_ZZ& Prod, mat_RR & MU);
 
-// L-Reduction core procedure, wich finds the best linear combination according to some parameters
-// Deprecated
-void Reduce(const long m, vec_long& P, const mat_RR& MU, const long& k, const long& r, long& j, long& q);
-
 // Apply the combinatino to the basis and update related parameters
 void Alter(mat_ZZ& B, const long& m, mat_ZZ& Prod, mat_RR& MU, const long& row, const long& j, const long& q);
 
@@ -40,6 +36,9 @@ void FactorRange(const long& m, const mat_RR& MU, const long& row, const long& c
 
 // Enumerate all acceptable combinations, and find the one minimize the greatest absolute value
 void BestFactor(const long& m, const mat_RR& MU, const long& row, const long& currentrow, RR& oldmax,
-        const long& minfactor, const long& maxfactor, long& j, long& q);
+        const long& minfactor, const long& maxfactor, long& bestindex, long& bestfactor);
+
+// Find the beset index and factor
+void RowReduce(const long m, const mat_RR& MU, const RR& mu, const long& row, long& bestindex, long& bestfactor);
 #else
 #endif

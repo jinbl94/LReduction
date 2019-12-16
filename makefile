@@ -7,7 +7,7 @@ default:$(TARGET)
 $(TARGET):$(OBJS)
 	$(CC) $(OBJS) -o $(TARGET) $(FLAGS)
 %.o:%.cpp %.h
-	$(CC) -c $< -o $@
+	$(CC) -c $< -o $@ $(FLAGS)
 
 .PHONY:clean
 clean:
