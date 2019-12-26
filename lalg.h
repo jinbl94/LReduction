@@ -12,14 +12,21 @@
 
 using namespace NTL;
 
+// Enumerate all possible combinations of some basis vectors, find the shortest one, and store this combination
+// MU : the basis vectors
+// s : dimension of the vectors
+// l : block size of enumeration
+void Enumerate(const mat_RR& MU, const long& m, const long& beta, const vec_long& indexes, vec_long& coeff);
+
 // L-Reduction main procedure
-static float LReduction(mat_ZZ& B);
+static float LReduction(mat_ZZ& B, mat_ZZ& U);
 
 // Initialize all parameters
-void Init(const mat_ZZ& B, const long m, vec_long& P, mat_ZZ& Prod, mat_RR & MU);
+void Init(const mat_ZZ& B, const long& m, vec_long& P, mat_ZZ& Prod, mat_RR & MU);
 
 // Apply the combinatino to the basis and update related parameters
-void Alter(mat_ZZ& B, const long& m, mat_ZZ& Prod, mat_RR& MU, const long& row, const long& j, const long& q);
+void Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& row, const vec_long& indexes, const vec_long& coeff, mat_ZZ& U);
+void Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& row, const long& j, const long& q, mat_ZZ& U);
 
 // Rearrange the basis according to some standard
 void Rearrange(const long& m, vec_long& P, const mat_ZZ& Prod);
@@ -28,7 +35,8 @@ void Rearrange(const long& m, vec_long& P, const mat_ZZ& Prod);
 void MUMax(const long& m, const mat_RR& MU, RR& mu);
 
 // Find the greatest absolute value of elements of a single row (besides 1, the rth element)
-void MaxRow(const long m, const vec_RR& row, const long& r, RR& maxrow);
+void MaxRow(const long m, const vec_RR& vecrow, RR& maxrow);
+void MaxRow(const long& m, const vec_RR& row, const long& r, RR& maxrow);
 
 // According to the greatest absolute value, find acceptable range for linear combinations
 void FactorRange(const long& m, const mat_RR& MU, const long& row, const long& currentrow,
@@ -39,6 +47,6 @@ void BestFactor(const long& m, const mat_RR& MU, const long& row, const long& cu
         const long& minfactor, const long& maxfactor, long& bestindex, long& bestfactor);
 
 // Find the beset index and factor
-void RowReduce(const long m, const mat_RR& MU, const RR& mu, const long& row, long& bestindex, long& bestfactor);
+void RowReduce(const long& m, const mat_RR& MU, const long& row, long& bestindex, long& bestfactor);
 #else
 #endif
