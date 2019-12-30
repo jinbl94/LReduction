@@ -23,14 +23,14 @@ int main()
 
     //outfile.close();
 
-    //test();
+    test();
 
     return 0;
 }
 
 void test()
 {
-    long m = 4;
+    long m = 100;
     mat_ZZ B, U;
     B.SetDims(m, m);
     ident(U, m);
@@ -64,15 +64,11 @@ void test()
 
     std::cout
         << "---- Before Reduction ----\n"
-        << "basis:\n" << B << std::endl
-        //<< "innerproduct matrix:\n" << Prod << std::endl
-        //<< "MU matrix:\n" << MU << std::endl
-        << "mu max: " << mu << std::endl
-        << "det(mu): " << detmustart << std::endl 
+        << "\nmu max: " << mu << "\tdet(mu): " << detmustart << std::endl
         << "---------------\n";
 
-    long change = 0;
     bool s = true;
+    long change = 0;
     long factor;
     RR tr;
     while(s){
@@ -96,25 +92,26 @@ void test()
     MUMax(m, MU, mu);
     std::cout
         << "\n---- After OReduction ----\n"
-        << "change: " << change << std::endl
-        << "basis:\n" << B << std::endl
-        //<< "innerproduct matrix:\n" << Prod << std::endl
-        << "MU matrix:\n" << MU << std::endl
-        << "mu max: " << mu << std::endl
-        << "det(mu): " << detmuend << std::endl 
-        << "optimize rate: " << optrate << std::endl
+        << "change: " << change 
+        << "\nmu max: " << mu << "\tdet(mu): " << detmuend << "\toptimize rate: " << optrate << std::endl
         << "---------------\n";
 
     change = 0;
+    long j;
+    long beta = 4;
+    vec_long indices, coeff;
+    indices.SetLength(beta);
+    coeff.SetLength(beta);
     s = true;
-    long bestindex, bestfactor;
-    while(s){ // Reduce until no changes happen
+    // Reduce until no changes happen
+    while(s){
         s = false;
         Rearrange(m, P, Prod);
         for(long i = 0; i < m; i++){
-            RowReduce(m, MU, P[i], bestindex, bestfactor);
-            Alter(m, B, Prod, MU, P[i], bestindex, bestfactor, U);
-            if(bestfactor != 0){ s = true; change++; }
+            Enumerate(m, MU, P[i], beta, indices, coeff);
+            Alter(m, B, Prod, MU, P[i], beta, indices, coeff, U);
+            for(j = 0; j < beta; j++){ if(coeff[j]) break; }
+            if(j != beta){ s = true; change++; }
         }
     }
 
@@ -123,13 +120,7 @@ void test()
     MUMax(m, MU, mu);
     std::cout
         << "\n---- After LReduction ----\n"
-        << "change: " << change << std::endl
-        << "mu max: " << mu << std::endl
-        << "det(mu): " << detmuend << std::endl 
-        << "optimize rate: " << optrate << std::endl
-        << "basis:\n" << B << std::endl
-        << "U\n" << U << std::endl
-        << "innerproduct matrix:\n" << Prod << std::endl
-        << "MU matrix:\n" << MU << std::endl
+        << "change: " << change 
+        << "\nmu max: " << mu << "\tdet(mu): " << detmuend << "\toptimize rate: " << optrate << std::endl
         << "---------------\n";
 }
