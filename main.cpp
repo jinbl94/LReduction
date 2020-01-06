@@ -1,126 +1,111 @@
+#include <NTL/LLL.h>
 #include "lalg.h"
 
-void test();
+void Test();
+
+void GenerateTestData(std::ofstream& data, const long number = 50);
 
 int main()
 {
-    //std::ifstream infile;
-    //infile.open("input");
-    //long m, n, q;
-    //float oprate;
-
-    //m: challenge lattice dimension
-    //n: reference dimension
-    //q: modulus
-    //B: challenge lattice basis
-
-    //infile >> m >> n >> q;
-    //mat_ZZ B;
-    //infile >> B;
-    //infile.close();
-
-    //oprate = LReduction(B);
-
-    //outfile.close();
-
-    test();
-
+    Test();
     return 0;
 }
 
-void test()
+void Test()
 {
-    long m = 100;
-    mat_ZZ B, U;
-    B.SetDims(m, m);
-    ident(U, m);
-    // Generate random latice
-    ZZ bound;
+    std::ofstream datafile;
+    datafile.open("input");
+    if(datafile){
+        GenerateTestData(datafile);
+    }else{
+        exit(1);
+    }
+    datafile.close();
+
+    std::ifstream data;
+    std::ofstream outlrd;
+    std::ofstream outlll;
+    data.open("input");
+    outlrd.open("output.lrd");
+    outlll.open("output.lll");
+
+    long m, i;
+    mat_ZZ B, B1;
+    ZZ det, prod, small, t;
+    RR smallr;
+
+    while(!data.eof()){
+        // Read basis dimension m, and the basis B
+        data >> m;
+        B.SetDims(m, m);
+        B1.SetDims(m, m);
+        data >> B;
+        B1 = B;
+        
+        /* Reduce basis B 
+         * record the length of shortest vector 
+         * and the product of squares of all vectors
+        */
+
+        // LReduction part
+        LReduction(B, 0);
+
+        InnerProduct(small, B[0], B[0]);
+        prod = small;
+        for(i = 1; i < m; i++){
+            InnerProduct(t, B[i], B[i]);
+            mul(prod, prod, t);
+            if(t < small) small = t;
+        }
+        conv(smallr, small);
+        SqrRoot(smallr, smallr);
+        outlrd << smallr << "\t" << prod << std::endl;
+
+        // LLL algorithm part
+        LLL(det, B1, 0);
+
+        InnerProduct(small, B[0], B[0]);
+        prod = small;
+        for(i = 1; i < m; i++){
+            InnerProduct(t, B[i], B[i]);
+            mul(prod, prod, t);
+            if(t < small) small = t;
+        }
+        conv(smallr, small);
+        SqrRoot(smallr, smallr);
+        outlll << smallr << "\t" << prod << std::endl;
+    }
+
+    data.close();
+    outlrd.close();
+    outlll.close();
+}
+
+// Generate random lattice bases
+void GenerateTestData(std::ofstream& data, const long number)
+{
+    long vecm[5] = {25, 50, 75, 85, 100};
+    long i, j, k, sign;
+    ZZ det, bound;
     bound = 100;
-    long sign;
-    for(long i = 0; i < m; i++){
-        for(long j = 0; j < m; j++){
-            RandomBnd(B[i][j], bound);
-            RandomBnd(sign, 2);
-            if(sign){
-                negate(B[i][j], B[i][j]);
+    mat_ZZ B;
+
+    for(auto m : vecm){
+        for(i = 0; i < number; i++){
+            B.SetDims(m, m);
+            for(j = 0; j < m; j++){
+                for(k = 0; k < m; k++){
+                    RandomBnd(B[j][k], bound);
+                    RandomBnd(sign, 2);
+                    if(sign){
+                        negate(B[j][k], B[j][k]);
+                    }
+                }
             }
+            determinant(det, B);
+            // If B is not m 
+            if(det == 0) { i--; continue; }
+            data << m << std::endl << B << std::endl;
         }
     }
-
-    RR mu, detmustart, detmuend, optrate;
-    vec_long P; // permutation of B
-    mat_ZZ Prod; // innerproduct of vectors
-    mat_RR MU, subMU; // mu matrix
-
-    // Initialize all parameters
-    P.SetLength(m);
-    Prod.SetDims(m, m);
-    MU.SetDims(m, m);
-    subMU.SetDims(m, m);
-    Init(B, m, P, Prod, MU);
-    determinant(detmustart, MU);
-    MUMax(m, MU, mu);
-
-    std::cout
-        << "---- Before Reduction ----\n"
-        << "\nmu max: " << mu << "\tdet(mu): " << detmustart << std::endl
-        << "---------------\n";
-
-    bool s = true;
-    long change = 0;
-    long factor;
-    RR tr;
-    while(s){
-        s = false;
-        Rearrange(m, P, Prod);
-        for(long i = 1; i < m; i++){
-            for(long j = 0; j < i; j++){
-                round(tr, MU[P[i]][P[j]]);
-                if(tr == 0){ continue; }
-                negate(tr, tr);
-                conv(factor, tr);
-                Alter(m, B, Prod, MU, P[i], P[j], factor, U);
-                s = true;
-                change++;
-            }
-        }
-    }
-
-    determinant(detmuend, MU);
-    div(optrate, detmuend, detmustart);
-    MUMax(m, MU, mu);
-    std::cout
-        << "\n---- After OReduction ----\n"
-        << "change: " << change 
-        << "\nmu max: " << mu << "\tdet(mu): " << detmuend << "\toptimize rate: " << optrate << std::endl
-        << "---------------\n";
-
-    change = 0;
-    long j;
-    long beta = 4;
-    vec_long indices, coeff;
-    indices.SetLength(beta);
-    coeff.SetLength(beta);
-    s = true;
-    // Reduce until no changes happen
-    while(s){
-        s = false;
-        Rearrange(m, P, Prod);
-        for(long i = 0; i < m; i++){
-            Enumerate(m, MU, P[i], beta, indices, coeff);
-            Alter(m, B, Prod, MU, P[i], beta, indices, coeff, U);
-            for(j = 0; j < beta; j++){ if(coeff[j]) break; }
-            if(j != beta){ s = true; change++; }
-        }
-    }
-
-    determinant(detmuend, MU);
-    div(optrate, detmuend, detmustart);
-    MUMax(m, MU, mu);
-    std::cout
-        << "\n---- After LReduction ----\n"
-        << "change: " << change 
-        << "\nmu max: " << mu << "\tdet(mu): " << detmuend << "\toptimize rate: " << optrate << std::endl
-        << "---------------\n";
 }

@@ -10,7 +10,7 @@ void MaxRow(const long& m, const vec_RR& vecrow, RR& maxrow)
     }
 }
 
-void MaxRow(const long& m, const vec_RR& vecrow, const long& row, RR& maxrow)
+void MaxRowR(const long& m, const long& row, const vec_RR& vecrow, RR& maxrow)
 {
     RR tr;
     maxrow = 0;
@@ -41,7 +41,7 @@ void Enumerate(const long& m, const mat_RR& MU, const long& r, const long& beta,
     vec_long ind, indbound, coe, lowbound, upbound, P;
     mat_RR GSObasis; // GSO basis
     vec_RR tvecrr, tvecrr1;
-    RR radius, tr, tr1; // Temp values
+    RR radius, minmax, tr, tr1; // Temp values
 
     P.SetLength(m);
     for(long i = 1; i < m; i++){ P[i] = i; }
@@ -58,7 +58,9 @@ void Enumerate(const long& m, const mat_RR& MU, const long& r, const long& beta,
     tvecrr1.SetLength(m);
 
     GSObasis[0] = MU[P[0]];
-    MaxRow(m, GSObasis[0], r, radius);
+    MaxRowR(m, r, GSObasis[0], minmax);
+    mul(radius, minmax, minmax);
+    mul(radius, m - 1, radius);
 
     for(long i = 0; i < beta; i++){
         ind[i] = i + 1;
@@ -88,8 +90,9 @@ void Enumerate(const long& m, const mat_RR& MU, const long& r, const long& beta,
                 mul(tvecrr, tr, GSObasis[j]);
                 sub(GSObasis[i], GSObasis[i], tvecrr);
             }
-            MaxRow(m, GSObasis[i], r, tr);
+            InnerProductR(m, r, tr, GSObasis[i], GSObasis[i]);
             div(tr, radius, tr);
+            sqr(tr, tr);
             floor(tr, tr);
             conv(upbound[i - 1], tr);
             negate(tr, tr);
@@ -106,16 +109,18 @@ void Enumerate(const long& m, const mat_RR& MU, const long& r, const long& beta,
                 coe[i]++; --i;
                 for(; i >= 0; i--){ coe[i] = lowbound[i]; }
 
-                // Calculate the length of current combination
+                // Calculate the max absolute value of current combination
                 tvecrr = MU[P[0]];
                 for(i = 0; i < beta; i++){
                     mul(tvecrr1, coe[i], MU[P[ind[i]]]);
                     add(tvecrr, tvecrr, tvecrr1);
                 }
-                MaxRow(m, tvecrr, r, tr);
-                if(tr < radius){
+                MaxRowR(m, r, tvecrr, tr);
+                if(tr < minmax){
                     std::cout << "row: " << r << ", index: " << ind << ", coe: " << coe << ", radius: " << radius;
-                    radius = tr;
+                    minmax = tr;
+                    mul(radius, minmax, minmax);
+                    mul(radius, m - 1, radius);
                     for(i = 0; i < beta; i++){ indices[i] = P[ind[i]]; }
                     coeff = coe;
                     std::cout << " / tr: " << tr << std::endl;
@@ -170,7 +175,7 @@ void Rearrange(const long& m, vec_long& P, const mat_ZZ& Prod)
     }
 }
 
-bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& r, const long& beta, const vec_long& indices, const vec_long& coeff, mat_ZZ& U)
+bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& r, const long& beta, const vec_long& indices, const vec_long& coeff, mat_ZZ* U)
 {
     long j;
     for(j = 0; j < beta; j++){ if(coeff[j]) break; }
@@ -198,17 +203,19 @@ bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& r, co
             conv(tr1, Prod[index][index]);
             div(MU[r][index], tr, tr1);
         }    
-        // U[r] = U[r] + U[indices] * coeff
-        for(index = 0; index < beta; index++){
-            mul(tveczz, coeff[index], U[indices[index]]);
-            add(U[r], U[r], tveczz);
+        if(U){
+            // U[r] = U[r] + U[indices] * coeff
+            for(index = 0; index < beta; index++){
+                mul(tveczz, coeff[index], (*U)[indices[index]]);
+                add((*U)[r], (*U)[r], tveczz);
+            }
         }
         return true;
     }
     return false;
 }
 
-void Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& row, const long& j, const long& q, mat_ZZ& U)
+bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& row, const long& j, const long& q, mat_ZZ* U)
 {
     if(q){
         ZZ tz;
@@ -245,12 +252,16 @@ void Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& row, 
             div(MU[index][row], tr, tr1);
         }    
 
-        // U[row] = U[row] + qU[j]
-        for(index = 0; index < m; index++){
-            mul(tz, q, U[j][index]);
-            add(U[row][index], U[row][index], tz);
+        if(U){
+            // U[row] = U[row] + qU[j]
+            for(index = 0; index < m; index++){
+                mul(tz, q, (*U)[j][index]);
+                add((*U)[row][index], (*U)[row][index], tz);
+            }
         }
+        return true;
     }
+    return false;
 }
 
 void FactorRange(const long& m, const mat_RR& MU, const long& row, const long& currentrow,
@@ -314,7 +325,7 @@ void RowReduce(const long& m, const mat_RR& MU, const long& row, long& bestindex
     bestindex = 0;
     bestfactor = 0;
     // find max absolute value of current row
-    // MaxRow(m, MU[row], row, maxrow);
+    // MaxRowR(m, row, MU[row], maxrow);
     MUMax(m, MU, maxrow);
     for(long currentrow = 0; currentrow < m; currentrow++){
         if(currentrow == row){ continue; }
@@ -338,7 +349,7 @@ void MUMax(const long& m, const mat_RR& MU, RR& mu)
     }
 }
 
-static float LReduction(mat_ZZ& B, mat_ZZ& U, const long& beta) // B' = U * B
+static float LReduction(mat_ZZ& B, mat_ZZ* U, const long beta) // B' = U * B
 {
     assert( B.NumRows() == B.NumCols()); // make sure B is a square matrix
     const long m = B.NumRows();
@@ -367,13 +378,11 @@ static float LReduction(mat_ZZ& B, mat_ZZ& U, const long& beta) // B' = U * B
                 if(tr == 0){ continue; }
                 negate(tr, tr);
                 conv(factor, tr);
-                Alter(m, B, Prod, MU, P[i], P[j], factor, U);
-                s = true;
+                s = Alter(m, B, Prod, MU, P[i], P[j], factor, U);
             }
         }
     }
 
-    long loop = 0;
     s = true;
     vec_long indices, coeff;
     indices.SetLength(beta);
@@ -384,9 +393,8 @@ static float LReduction(mat_ZZ& B, mat_ZZ& U, const long& beta) // B' = U * B
         Rearrange(m, P, Prod);
         for(long i = 0; i < m; i++){
             Enumerate(m, MU, P[i], beta, indices, coeff);
-            if(Alter(m, B, Prod, MU, P[i], beta, indices, coeff, U)){ s = true; }
+            s = Alter(m, B, Prod, MU, P[i], beta, indices, coeff, U);
         }
-        loop++;
     }
 
     determinant(detmuend, MU);

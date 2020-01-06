@@ -15,7 +15,7 @@ using namespace NTL;
 
 // Find the greatest absolute value of elements of a single row (besides 1, the rth element)
 void MaxRow(const long& m, const vec_RR& vecrow, RR& maxrow);
-void MaxRow(const long& m, const vec_RR& vecrow, const long& r, RR& maxrow);
+void MaxRowR(const long& m, const long& row, const vec_RR& vecrow, RR& maxrow);
 
 // Innerproduct without the rth element
 void InnerProductR(const long& m, const long& r, RR& result, const vec_RR& vec1, const vec_RR& vec2);
@@ -27,15 +27,12 @@ void InnerProductR(const long& m, const long& r, RR& result, const vec_RR& vec1,
 void EnumerateCPMU(const long& m, const mat_RR& MU, const long& beta, const vec_long& indices, vec_long& coeff);
 void Enumerate(const long& m, const mat_RR& MU, const long& r, const long& beta, vec_long& indices, vec_long& coeff);
 
-// L-Reduction main procedure
-static float LReduction(mat_ZZ& B, mat_ZZ& U);
-
 // Initialize all parameters
 void Init(const mat_ZZ& B, const long& m, vec_long& P, mat_ZZ& Prod, mat_RR & MU);
 
 // Apply the combinatino to the basis and update related parameters
-bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& r, const long& beta, const vec_long& indices, const vec_long& coeff, mat_ZZ& U);
-void Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& row, const long& j, const long& q, mat_ZZ& U);
+bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& r, const long& beta, const vec_long& indices, const vec_long& coeff, mat_ZZ* U);
+bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& row, const long& j, const long& q, mat_ZZ* U);
 
 // Rearrange the basis according to some standard
 void Rearrange(const long& m, vec_long& P, const mat_ZZ& Prod);
@@ -53,5 +50,9 @@ void BestFactor(const long& m, const mat_RR& MU, const long& row, const long& cu
 
 // Find the beset index and factor
 void RowReduce(const long& m, const mat_RR& MU, const long& row, long& bestindex, long& bestfactor);
+
+// L-Reduction main procedure
+static float LReduction(mat_ZZ& B, mat_ZZ* U, const long beta = 6);
+
 #else
 #endif
