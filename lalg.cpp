@@ -1,6 +1,6 @@
 #include "lalg.h"
 
-void MaxRow(const long& m, const vec_RR& vecrow, RR& maxrow)
+static void MaxRow(const long& m, const vec_RR& vecrow, RR& maxrow)
 {
     RR tr;
     maxrow = 0;
@@ -10,7 +10,7 @@ void MaxRow(const long& m, const vec_RR& vecrow, RR& maxrow)
     }
 }
 
-void MaxRowR(const long& m, const long& row, const vec_RR& vecrow, RR& maxrow)
+static void MaxRowR(const long& m, const long& row, const vec_RR& vecrow, RR& maxrow)
 {
     RR tr;
     maxrow = 0;
@@ -21,7 +21,7 @@ void MaxRowR(const long& m, const long& row, const vec_RR& vecrow, RR& maxrow)
     }
 }
 
-void InnerProductR(const long& m, const long& r, RR& result, const vec_RR& vec1, const vec_RR& vec2)
+static void InnerProductR(const long& m, const long& r, RR& result, const vec_RR& vec1, const vec_RR& vec2)
 {
     RR t;
     result = 0;
@@ -32,7 +32,7 @@ void InnerProductR(const long& m, const long& r, RR& result, const vec_RR& vec1,
     }
 }
 
-void Enumerate(const long& m, const mat_RR& MU, const long& r, const long& beta, vec_long& indices, vec_long& coeff)
+static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long& beta, vec_long& indices, vec_long& coeff)
 {
     assert(indices.length() == beta);
     assert(coeff.length() == beta);
@@ -58,9 +58,7 @@ void Enumerate(const long& m, const mat_RR& MU, const long& r, const long& beta,
     tvecrr1.SetLength(m);
 
     GSObasis[0] = MU[P[0]];
-    MaxRowR(m, r, GSObasis[0], minmax);
-    mul(radius, minmax, minmax);
-    mul(radius, m - 1, radius);
+    InnerProductR(m, r, radius, GSObasis[0], GSObasis[0]);
 
     for(long i = 0; i < beta; i++){
         ind[i] = i + 1;
@@ -109,28 +107,24 @@ void Enumerate(const long& m, const mat_RR& MU, const long& r, const long& beta,
                 coe[i]++; --i;
                 for(; i >= 0; i--){ coe[i] = lowbound[i]; }
 
-                // Calculate the max absolute value of current combination
+                // Calculate the square of length of current combination
                 tvecrr = MU[P[0]];
                 for(i = 0; i < beta; i++){
                     mul(tvecrr1, coe[i], MU[P[ind[i]]]);
                     add(tvecrr, tvecrr, tvecrr1);
                 }
-                MaxRowR(m, r, tvecrr, tr);
-                if(tr < minmax){
-                    std::cout << "row: " << r << ", index: " << ind << ", coe: " << coe << ", radius: " << radius;
-                    minmax = tr;
-                    mul(radius, minmax, minmax);
-                    mul(radius, m - 1, radius);
+                InnerProductR(m, r, tr, tvecrr, tvecrr);
+                if(tr < radius){
+                    radius = tr;
                     for(i = 0; i < beta; i++){ indices[i] = P[ind[i]]; }
                     coeff = coe;
-                    std::cout << " / tr: " << tr << std::endl;
                 }
             }
         }
     }
 }
 
-void Init(const mat_ZZ& B, const long& m, vec_long& P, mat_ZZ& Prod, mat_RR & MU)
+static void Init(const mat_ZZ& B, const long& m, vec_long& P, mat_ZZ& Prod, mat_RR & MU)
 {
     RR tr, tr1;
 
@@ -159,7 +153,7 @@ void Init(const mat_ZZ& B, const long& m, vec_long& P, mat_ZZ& Prod, mat_RR & MU
     }
 }
 
-void Rearrange(const long& m, vec_long& P, const mat_ZZ& Prod)
+static void Rearrange(const long& m, vec_long& P, const mat_ZZ& Prod)
 {
     ZZ tz;
     long tl, i, j;
@@ -175,7 +169,7 @@ void Rearrange(const long& m, vec_long& P, const mat_ZZ& Prod)
     }
 }
 
-bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& r, const long& beta, const vec_long& indices, const vec_long& coeff, mat_ZZ* U)
+static bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& r, const long& beta, const vec_long& indices, const vec_long& coeff, mat_ZZ* U)
 {
     long j;
     for(j = 0; j < beta; j++){ if(coeff[j]) break; }
@@ -215,7 +209,7 @@ bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& r, co
     return false;
 }
 
-bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& row, const long& j, const long& q, mat_ZZ* U)
+static bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& row, const long& j, const long& q, mat_ZZ* U)
 {
     if(q){
         ZZ tz;
@@ -264,7 +258,7 @@ bool Alter(const long& m, mat_ZZ& B, mat_ZZ& Prod, mat_RR& MU, const long& row, 
     return false;
 }
 
-void FactorRange(const long& m, const mat_RR& MU, const long& row, const long& currentrow,
+static void FactorRange(const long& m, const mat_RR& MU, const long& row, const long& currentrow,
         const RR& maxrow, long& maxfactor, long& minfactor)
 {
     RR tr, tr1;
@@ -285,18 +279,15 @@ void FactorRange(const long& m, const mat_RR& MU, const long& row, const long& c
             if(tr > tr1){
                 if(maxfactor > tr){ conv(maxfactor, tr); }
                 if(minfactor < tr1){ conv(minfactor, tr1); }
-                // std::cout << "range(" << tr1 << ", " << tr << ")\n";
             }else{
                 if(maxfactor > tr1){ conv(maxfactor, tr1); }
                 if(minfactor < tr){ conv(minfactor, tr); }
-                // std::cout << "range(" << tr << ", " << tr1 << ")\n";
             }
         }
     }
-    // std::cout << row << ", " << currentrow << ": min: " << minfactor << ", max: " << maxfactor << std::endl;
 }
 
-void BestFactor(const long& m, const mat_RR& MU, const long& row, const long& currentrow, RR& maxrow,
+static void BestFactor(const long& m, const mat_RR& MU, const long& row, const long& currentrow, RR& maxrow,
         const long& minfactor, const long& maxfactor, long& bestindex, long& bestfactor)
 {
     RR tr, tr1;
@@ -318,7 +309,7 @@ void BestFactor(const long& m, const mat_RR& MU, const long& row, const long& cu
     }
 }
 
-void RowReduce(const long& m, const mat_RR& MU, const long& row, long& bestindex, long& bestfactor)
+static void RowReduce(const long& m, const mat_RR& MU, const long& row, long& bestindex, long& bestfactor)
 {
     RR maxrow;
     long minfactor, maxfactor;
@@ -335,7 +326,7 @@ void RowReduce(const long& m, const mat_RR& MU, const long& row, long& bestindex
     }
 }
 
-void MUMax(const long& m, const mat_RR& MU, RR& mu)
+static void MUMax(const long& m, const mat_RR& MU, RR& mu)
 {
     mu = 0;
     RR tr;
@@ -349,12 +340,11 @@ void MUMax(const long& m, const mat_RR& MU, RR& mu)
     }
 }
 
-static float LReduction(mat_ZZ& B, mat_ZZ* U, const long beta) // B' = U * B
+void LReduction(mat_ZZ& B, const long& beta, mat_ZZ* U) // B' = U * B
 {
     assert( B.NumRows() == B.NumCols()); // make sure B is a square matrix
     const long m = B.NumRows();
 
-    RR detmustart, detmuend, optrate;
     vec_long P; // permutation of B
     mat_ZZ Prod; // innerproduct of vectors
     mat_RR MU; // mu matrix
@@ -364,7 +354,6 @@ static float LReduction(mat_ZZ& B, mat_ZZ* U, const long beta) // B' = U * B
     Prod.SetDims(m, m);
     MU.SetDims(m, m);
     Init(B, m, P, Prod, MU);
-    determinant(detmustart, MU);
 
     bool s = true;
     long factor;
@@ -393,14 +382,7 @@ static float LReduction(mat_ZZ& B, mat_ZZ* U, const long beta) // B' = U * B
         Rearrange(m, P, Prod);
         for(long i = 0; i < m; i++){
             Enumerate(m, MU, P[i], beta, indices, coeff);
-            s = Alter(m, B, Prod, MU, P[i], beta, indices, coeff, U);
+            if(Alter(m, B, Prod, MU, P[i], beta, indices, coeff, U)) s = true;
         }
     }
-
-    determinant(detmuend, MU);
-    div(optrate, detmuend, detmustart);
-    float result;
-    conv(result, optrate);
-
-    return result;
 }

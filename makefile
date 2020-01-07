@@ -6,6 +6,7 @@ FLAGS= -lntl -g
 default:$(TARGET)
 $(TARGET):$(OBJS)
 	$(CC) $(OBJS) -o $(TARGET) $(FLAGS)
+
 %.o:%.cpp %.h
 	$(CC) -c $< -o $@ $(FLAGS)
 
