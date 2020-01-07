@@ -1,9 +1,10 @@
+.gitignore
 challenge-200
 challenge-550
-input
 lalg
 lalg.o
 main
 main.o
+input
 output
-output.copy
+output.lrd
