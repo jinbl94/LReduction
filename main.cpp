@@ -100,7 +100,7 @@ void Test()
 // Generate random lattice bases
 void GenerateTestData(std::ofstream& data, const long number)
 {
-    long vecm[5] = {10, 20};
+    long vecm[2] = {10, 20};
     long i, j, k, sign;
     ZZ det, bound;
     bound = 100;
