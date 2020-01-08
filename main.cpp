@@ -52,14 +52,14 @@ void Test()
 
         // LLL algorithm part
         LLL(det, B1, 0);
-        Update(B, m, Prod, MU, small);
+        Update(B1, m, Prod, MU, small);
         SqrRoot(small, small);
         determinant(detmu, MU);
         outlrd << small << "/" << detmu << "\t";
 
         // LLL + LRD
         LReduction(B1, 6, 0);
-        Update(B, m, Prod, MU, small);
+        Update(B1, m, Prod, MU, small);
         SqrRoot(small, small);
         determinant(detmu, MU);
         outlrd << small << "/" << detmu << "\t";

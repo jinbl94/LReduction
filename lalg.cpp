@@ -38,8 +38,7 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
     assert(coeff.length() == beta);
 
     // indices, bound vector for indices, coefficient vector, lower and upper bound for coefficient vector
-    vec_long ind, indbound, coe, lowbound, upbound, P;
-    mat_RR GSObasis; // GSO basis
+    vec_long ind, indbound, coe, lowbound, upbound, P; mat_RR GSObasis; // GSO basis
     vec_RR tvecrr, tvecrr1;
     RR radius, minmax, tr, tr1; // Temp values
 
@@ -58,7 +57,10 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
     tvecrr1.SetLength(m);
 
     GSObasis[0] = MU[P[0]];
-    InnerProductR(m, r, radius, GSObasis[0], GSObasis[0]);
+    MaxRowR(m, r, GSObasis[0], minmax);
+    mul(radius, minmax, minmax);
+    mul(radius, m - 1, radius);
+    //InnerProductR(m, r, radius, GSObasis[0], GSObasis[0]);
 
     for(long i = 0; i < beta; i++){
         ind[i] = i + 1;
@@ -113,9 +115,12 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
                     mul(tvecrr1, coe[i], MU[P[ind[i]]]);
                     add(tvecrr, tvecrr, tvecrr1);
                 }
-                InnerProductR(m, r, tr, tvecrr, tvecrr);
-                if(tr < radius){
-                    radius = tr;
+                // InnerProductR(m, r, tr, tvecrr, tvecrr);
+                MaxRowR(m, r, tvecrr, tr);
+                if(tr < minmax){
+                    minmax = tr;
+                    mul(radius, minmax, minmax);
+                    mul(radius, m - 1, radius);
                     for(i = 0; i < beta; i++){ indices[i] = P[ind[i]]; }
                     coeff = coe;
                 }
@@ -373,16 +378,19 @@ void LReduction(mat_ZZ& B, const long& beta, mat_ZZ* U) // B' = U * B
     }
 
     s = true;
+    long loop = 0;
+    const long LoopBound = 30;
     vec_long indices, coeff;
     indices.SetLength(beta);
     coeff.SetLength(beta);
     // Reduce until no change happened
-    while(s){
+    while(s && loop < LoopBound){
         s = false;
         Rearrange(m, P, Prod);
         for(long i = 0; i < m; i++){
             Enumerate(m, MU, P[i], beta, indices, coeff);
             if(Alter(m, B, Prod, MU, P[i], beta, indices, coeff, U)) s = true;
         }
+        loop++;
     }
 }
