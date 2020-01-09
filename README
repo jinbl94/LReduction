@@ -1,0 +1,4 @@
+This is the implementation of LReduction algorithm using Shoup's NTL. 
+Which is a lattice reduction algorithm with orthogonal approach. 
+All work is done by myself, and you're free to copy/modify these code for research purpose.
+Any form of commercial usage is not allowed withou my permit. 
