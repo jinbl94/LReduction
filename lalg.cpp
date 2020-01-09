@@ -38,31 +38,46 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
     assert(coeff.length() == beta);
 
     // indices, bound vector for indices, coefficient vector, lower and upper bound for coefficient vector
-    vec_long ind, indbound, coe, lowbound, upbound, P; mat_RR GSObasis; // GSO basis
-    vec_RR tvecrr, tvecrr1;
+    // deltax, delta2x, vecl, vecc are temp variables use in enum
+    vec_long ind, indbound, coe, P, deltax, delta2x; // lowbound, upbound;
+    mat_RR GSO, GSOmu, matv; // GSO basis realted
+    vec_RR GSOsquare, tvecrr, tvecrr1, vecl, vecc, vecy;
     RR radius, minmax, tr, tr1; // Temp values
+    long i, j; // temp variable used as index
 
     P.SetLength(m);
-    for(long i = 1; i < m; i++){ P[i] = i; }
+    for(i = 1; i < m; i++){ P[i] = i; }
     P[0] = r; P[r] = 0;
+
+    tvecrr.SetLength(m);
+    tvecrr1.SetLength(m);
 
     coe.SetLength(beta);
     ind.SetLength(beta);
     indbound.SetLength(beta);
-    lowbound.SetLength(beta);
-    upbound.SetLength(beta);
+    //lowbound.SetLength(beta);
+    //upbound.SetLength(beta);
+    GSOsquare.SetLength(beta + 1);
 
-    GSObasis.SetDims(beta + 1, m);
-    tvecrr.SetLength(m);
-    tvecrr1.SetLength(m);
+    vecy.SetLength(beta);
+    vecl.SetLength(beta + 1);
+    vecc.SetLength(beta);
+    deltax.SetLength(beta);
+    delta2x.SetLength(beta);
 
-    GSObasis[0] = MU[P[0]];
-    MaxRowR(m, r, GSObasis[0], minmax);
-    mul(radius, minmax, minmax);
+    GSO.SetDims(beta + 1, m);
+    GSOmu.SetDims(beta + 1, beta + 1);
+    matv.SetDims(beta + 1, m);
+
+    // Target at index beta
+    GSO[beta] = MU[P[0]];
+    MaxRowR(m, r, GSO[beta], minmax);
+    sqr(radius, minmax);
     mul(radius, m - 1, radius);
-    //InnerProductR(m, r, radius, GSObasis[0], GSObasis[0]);
+    //InnerProductR(m, r, radius, GSO[0], GSO[0]);
 
-    for(long i = 0; i < beta; i++){
+    // ind = [1, 2, ..., beta], indbound = [m - beta, m - beta + 1, ..., m - 1]
+    for(i = 0; i < beta; i++){
         ind[i] = i + 1;
         indbound[i] = m - beta + i;
         coeff[i] = 0;
@@ -71,61 +86,140 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
     // Run over all possible indices
     ind[beta - 1]--;
     while(ind != indbound){
-        long i, j;
         for(i = beta - 1; i >= 0; i--){ if(ind[i] != indbound [i]) break; }
         ind[i]++; ++i;
         for(; i < beta; i++){ ind[i] = ind[i - 1] + 1; }
 
-        /* Calculate enumeration bound for MU[P[ind[i]]]
-         * calculate gram-schmit, and their max absolute value
-         * fix lower and upper bounds
+        /* Schnorr's enumeration algorithm
+         * calculate gram-schmit, and related parameters
          * enumerate them and store the shortest one
          */
-        for(i = 1; i < beta + 1; i++){
-            GSObasis[i] = MU[P[ind[i - 1]]];
+        InnerProductR(m, r, GSOsquare[0], GSO[0], GSO[0]);
+        for(i = 0; i < beta; i++){
+            GSO[i] = MU[P[ind[i]]];
             for(j = 0; j < i; j++){
-                InnerProductR(m, r, tr, GSObasis[i], GSObasis[j]);
-                InnerProductR(m, r, tr1, GSObasis[j], GSObasis[j]);
-                div(tr, tr, tr1);
-                mul(tvecrr, tr, GSObasis[j]);
-                sub(GSObasis[i], GSObasis[i], tvecrr);
+                InnerProductR(m, r, GSOmu[i][j], GSO[i], GSO[j]);
+                div(GSOmu[i][j], GSOmu[i][j], GSOsquare[j]);
+                mul(tvecrr, GSOmu[i][j], GSO[j]);
+                sub(GSO[i], GSO[i], tvecrr);
             }
-            InnerProductR(m, r, tr, GSObasis[i], GSObasis[i]);
-            div(tr, radius, tr);
-            sqr(tr, tr);
-            floor(tr, tr);
-            conv(upbound[i - 1], tr);
-            negate(tr, tr);
-            conv(lowbound[i - 1], tr);
+            InnerProductR(m, r, GSOsquare[i], GSO[i], GSO[i]);
         }
 
-        if(lowbound != upbound){
-            // Enumerate MU[P[ind]]
-            coe = lowbound;
-            coe[0]--;
-            // Run over all possible combinations
-            while(coe != upbound){
-                for(i = 0; i < beta; i ++){ if(coe[i] != upbound[i]) break; }
-                coe[i]++; --i;
-                for(; i >= 0; i--){ coe[i] = lowbound[i]; }
+        vecl[0] = 0;
+        // GSO[beta]
+        for(j = 0; j < beta; j++){
+            InnerProductR(m, r, GSOmu[beta][j], GSO[beta], GSO[j]);
+            div(GSOmu[beta][j], GSOmu[beta][j], GSOsquare[j]);
+            mul(tvecrr, GSOmu[beta][j], GSO[j]);
+            sub(GSO[beta], GSO[beta], tvecrr);
+            InnerProductR(m, r, vecl[i + 1], GSO[beta], GSO[beta]);
+        }
+        GSOsquare[beta] = vecl[beta];
 
-                // Calculate the square of length of current combination
-                tvecrr = MU[P[0]];
-                for(i = 0; i < beta; i++){
-                    mul(tvecrr1, coe[i], MU[P[ind[i]]]);
-                    add(tvecrr, tvecrr, tvecrr1);
+        // Initialize all variables
+        for(i = 0; i < beta; i++){
+            coe[i] = 0;
+            deltax[i] = 0;
+            delta2x[i] = -1;
+            negate(vecc[i], GSOmu[i][beta]);
+            vecy[i] = 0;
+            matv[i] = MU[P[0]];
+        }
+        matv[beta] = MU[P[0]];
+        deltax[0] = 1;
+        delta2x[0] = 1;
+
+        i = 0;
+        while(true){
+            // Length of current combination
+            sub(vecy[i], coe[i], vecc[i]);
+            abs(vecy[i], vecy[i]);
+            mul(tr, vecy[i], vecy[i]);
+            mul(tr, tr, GSOsquare[i]);
+            add(vecl[i], vecl[i + 1], tr);
+            mul(tvecrr, coe[i], MU[P[ind[i]]]);
+            add(matv[i], matv[i + 1], tvecrr);
+            MaxRowR(m, r, matv[i], tr);
+
+            // If current combination is smller in l_\infnity norm
+            if(tr < minmax && i == 1){
+                for(j = 0; j < beta; j++) indices[j] = P[ind[j]];
+                coeff = coe;
+                minmax = tr;
+                sqr(radius, minmax);
+                mul(radius, m - 1, radius);
+            }
+
+            if(vecl[i] <= radius && i > 1){
+                --i;
+                vecc[i] = 0;
+                for(j = i + 1; j < beta; j++){
+                    mul(tr, coe[j], GSOmu[j][i]);
+                    negate(tr, tr);
+                    add(vecc[i], vecc[i], tr);
                 }
-                // InnerProductR(m, r, tr, tvecrr, tvecrr);
-                MaxRowR(m, r, tvecrr, tr);
-                if(tr < minmax){
-                    minmax = tr;
-                    mul(radius, minmax, minmax);
-                    mul(radius, m - 1, radius);
-                    for(i = 0; i < beta; i++){ indices[i] = P[ind[i]]; }
-                    coeff = coe;
-                }
+                sub(vecc[i], vecc[i], GSOmu[beta][i]);
+                round(tr, vecc[i]);
+                conv(coe[i], tr);
+                deltax[i] = 0;
+                delta2x[i] = (vecc[i] < coe[i]) ? 1 : -1;
+            }else if(vecl[i] > radius && i == beta){ break; }
+            else{
+                ++i;
+                delta2x[i] = - delta2x[i];
+                deltax[i] = - deltax[i] + delta2x[i];
+                coe[i] = coe[i] + deltax[i];
             }
         }
+
+        //// GSO calculation for abandoned enumeration algorithm
+        //for(i = 1; i < beta + 1; i++){
+        //    GSO[i] = MU[P[ind[i - 1]]];
+        //    for(j = 0; j < i; j++){
+        //        InnerProductR(m, r, tr, GSO[i], GSO[j]);
+        //        InnerProductR(m, r, tr1, GSO[j], GSO[j]);
+        //        div(tr, tr, tr1);
+        //        mul(tvecrr, tr, GSO[j]);
+        //        sub(GSO[i], GSO[i], tvecrr);
+        //    }
+        //    InnerProductR(m, r, tr, GSO[i], GSO[i]);
+        //    div(tr, radius, tr);
+        //    sqr(tr, tr);
+        //    floor(tr, tr);
+        //    conv(upbound[i - 1], tr);
+        //    negate(tr, tr);
+        //    conv(lowbound[i - 1], tr);
+        //}
+
+        //// Abandoned enumeration algorithm
+        //if(lowbound != upbound){
+        //    // Enumerate MU[P[ind]]
+        //    coe = lowbound;
+        //    coe[0]--;
+        //    // Run over all possible combinations
+        //    while(coe != upbound){
+        //        for(i = 0; i < beta; i ++){ if(coe[i] != upbound[i]) break; }
+        //        coe[i]++; --i;
+        //        for(; i >= 0; i--){ coe[i] = lowbound[i]; }
+
+        //        // Calculate the square of length of current combination
+        //        tvecrr = MU[P[0]];
+        //        for(i = 0; i < beta; i++){
+        //            mul(tvecrr1, coe[i], MU[P[ind[i]]]);
+        //            add(tvecrr, tvecrr, tvecrr1);
+        //        }
+        //        // InnerProductR(m, r, tr, tvecrr, tvecrr);
+        //        MaxRowR(m, r, tvecrr, tr);
+        //        if(tr < minmax){
+        //            minmax = tr;
+        //            mul(radius, minmax, minmax);
+        //            mul(radius, m - 1, radius);
+        //            for(i = 0; i < beta; i++){ indices[i] = P[ind[i]]; }
+        //            coeff = coe;
+        //        }
+        //    }
+        //}
     }
 }
 
