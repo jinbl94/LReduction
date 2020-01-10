@@ -106,8 +106,8 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
             InnerProductR(m, r, GSOsquare[i], GSO[i], GSO[i]);
         }
 
-        vecl[0] = 0;
         // GSO[beta]
+        InnerProductR(m, r, vecl[0], GSO[beta], GSO[beta]);
         for(j = 0; j < beta; j++){
             InnerProductR(m, r, GSOmu[beta][j], GSO[beta], GSO[j]);
             div(GSOmu[beta][j], GSOmu[beta][j], GSOsquare[j]);
@@ -122,7 +122,7 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
             coe[i] = 0;
             deltax[i] = 0;
             delta2x[i] = -1;
-            negate(vecc[i], GSOmu[i][beta]);
+            negate(vecc[i], GSOmu[beta][i]);
             vecy[i] = 0;
             matv[i] = MU[P[0]];
         }
@@ -153,18 +153,16 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
 
             if(vecl[i] <= radius && i > 1){
                 --i;
-                vecc[i] = 0;
+                negate(vecc[i], GSOmu[beta][i]);
                 for(j = i + 1; j < beta; j++){
                     mul(tr, coe[j], GSOmu[j][i]);
-                    negate(tr, tr);
-                    add(vecc[i], vecc[i], tr);
+                    sub(vecc[i], vecc[i], tr);
                 }
-                sub(vecc[i], vecc[i], GSOmu[beta][i]);
                 round(tr, vecc[i]);
                 conv(coe[i], tr);
                 deltax[i] = 0;
                 delta2x[i] = (vecc[i] < coe[i]) ? 1 : -1;
-            }else if(vecl[i] > radius && i == beta){ break; }
+            }else if(vecl[i] > radius && i == (beta - 1)){ break; }
             else{
                 ++i;
                 delta2x[i] = - delta2x[i];
@@ -172,54 +170,6 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
                 coe[i] = coe[i] + deltax[i];
             }
         }
-
-        //// GSO calculation for abandoned enumeration algorithm
-        //for(i = 1; i < beta + 1; i++){
-        //    GSO[i] = MU[P[ind[i - 1]]];
-        //    for(j = 0; j < i; j++){
-        //        InnerProductR(m, r, tr, GSO[i], GSO[j]);
-        //        InnerProductR(m, r, tr1, GSO[j], GSO[j]);
-        //        div(tr, tr, tr1);
-        //        mul(tvecrr, tr, GSO[j]);
-        //        sub(GSO[i], GSO[i], tvecrr);
-        //    }
-        //    InnerProductR(m, r, tr, GSO[i], GSO[i]);
-        //    div(tr, radius, tr);
-        //    sqr(tr, tr);
-        //    floor(tr, tr);
-        //    conv(upbound[i - 1], tr);
-        //    negate(tr, tr);
-        //    conv(lowbound[i - 1], tr);
-        //}
-
-        //// Abandoned enumeration algorithm
-        //if(lowbound != upbound){
-        //    // Enumerate MU[P[ind]]
-        //    coe = lowbound;
-        //    coe[0]--;
-        //    // Run over all possible combinations
-        //    while(coe != upbound){
-        //        for(i = 0; i < beta; i ++){ if(coe[i] != upbound[i]) break; }
-        //        coe[i]++; --i;
-        //        for(; i >= 0; i--){ coe[i] = lowbound[i]; }
-
-        //        // Calculate the square of length of current combination
-        //        tvecrr = MU[P[0]];
-        //        for(i = 0; i < beta; i++){
-        //            mul(tvecrr1, coe[i], MU[P[ind[i]]]);
-        //            add(tvecrr, tvecrr, tvecrr1);
-        //        }
-        //        // InnerProductR(m, r, tr, tvecrr, tvecrr);
-        //        MaxRowR(m, r, tvecrr, tr);
-        //        if(tr < minmax){
-        //            minmax = tr;
-        //            mul(radius, minmax, minmax);
-        //            mul(radius, m - 1, radius);
-        //            for(i = 0; i < beta; i++){ indices[i] = P[ind[i]]; }
-        //            coeff = coe;
-        //        }
-        //    }
-        //}
     }
 }
 
