@@ -24,7 +24,7 @@ static void MaxRowR(const long& m, const long& row, const vec_RR& vecrow, RR& ma
 static void InnerProductR(const long& m, const long& r, RR& result, const vec_RR& vec1, const vec_RR& vec2)
 {
     RR t;
-    result = 0;
+    conv(result, 0);
     for(long i = 0; i < m; i++){
         if(i == r) continue;
         mul(t, vec1[i], vec2[i]);
@@ -55,8 +55,6 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
     coe.SetLength(beta);
     ind.SetLength(beta);
     indbound.SetLength(beta);
-    //lowbound.SetLength(beta);
-    //upbound.SetLength(beta);
     GSOsquare.SetLength(beta + 1);
 
     vecy.SetLength(beta);
@@ -171,6 +169,21 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
             }
         }
     }
+
+    tvecrr.kill();
+    tvecrr1.kill();
+    coe.kill();
+    ind.kill();
+    indbound.kill();
+    GSOsquare.kill();
+    vecy.kill();
+    vecl.kill();
+    vecc.kill();
+    deltax.kill();
+    delta2x.kill();
+    GSO.kill();
+    GSOmu.kill();
+    matv.kill();
 }
 
 static void Init(const mat_ZZ& B, const long& m, vec_long& P, mat_ZZ& Prod, mat_RR & MU)
@@ -423,17 +436,17 @@ void LReduction(mat_ZZ& B, const long& beta, mat_ZZ* U) // B' = U * B
 
     s = true;
     long loop = 0;
-    const long LoopBound = 30;
+    const long LoopBound = 50;
     vec_long indices, coeff;
     indices.SetLength(beta);
     coeff.SetLength(beta);
     // Reduce until no change happened
     while(s && loop < LoopBound){
         s = false;
-        Rearrange(m, P, Prod);
+        // Rearrange(m, P, Prod);
         for(long i = 0; i < m; i++){
-            Enumerate(m, MU, P[i], beta, indices, coeff);
-            if(Alter(m, B, Prod, MU, P[i], beta, indices, coeff, U)) s = true;
+            Enumerate(m, MU, i, beta, indices, coeff);
+            if(Alter(m, B, Prod, MU, i, beta, indices, coeff, U)) s = true;
         }
         loop++;
     }
