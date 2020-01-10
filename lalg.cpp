@@ -111,7 +111,7 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
             div(GSOmu[beta][j], GSOmu[beta][j], GSOsquare[j]);
             mul(tvecrr, GSOmu[beta][j], GSO[j]);
             sub(GSO[beta], GSO[beta], tvecrr);
-            InnerProductR(m, r, vecl[i + 1], GSO[beta], GSO[beta]);
+            InnerProductR(m, r, vecl[j + 1], GSO[beta], GSO[beta]);
         }
         GSOsquare[beta] = vecl[beta];
 

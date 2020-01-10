@@ -62,7 +62,7 @@ void Test()
         Update(B, m, Prod, MU, small);
         SqrRoot(small, small);
         determinant(detmu, MU);
-        outlrd << small << "/" << detmu << "\t";
+        outlrd << small << "/" << detmu << std::endl;
 
         outlrd.flush();
         std::cout << m << " ";
