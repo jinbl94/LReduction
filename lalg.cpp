@@ -40,9 +40,11 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
     // indices, bound vector for indices, coefficient vector, lower and upper bound for coefficient vector
     // deltax, delta2x, vecl, vecc are temp variables use in enum
     vec_long ind, indbound, coe, P, deltax, delta2x; // lowbound, upbound;
-    mat_RR GSO, GSOmu, matv; // GSO basis realted
+    mat_RR GSO, GSOmu; // GSO basis realted
+    mat_RR matv;
     vec_RR GSOsquare, tvecrr, tvecrr1, vecl, vecc, vecy;
-    RR radius, minmax, tr, tr1; // Temp values
+    RR radius, tr, tr1; // Temp values
+    RR minmax;
     long i, j; // temp variable used as index
 
     P.SetLength(m);
@@ -72,7 +74,7 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
     MaxRowR(m, r, GSO[beta], minmax);
     sqr(radius, minmax);
     mul(radius, m - 1, radius);
-    //InnerProductR(m, r, radius, GSO[0], GSO[0]);
+    //InnerProductR(m, r, radius, GSO[beta], GSO[beta]);
 
     // ind = [1, 2, ..., beta], indbound = [m - beta, m - beta + 1, ..., m - 1]
     for(i = 0; i < beta; i++){
@@ -89,10 +91,9 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
         for(; i < beta; i++){ ind[i] = ind[i - 1] + 1; }
 
         /* Schnorr's enumeration algorithm
-         * calculate gram-schmit, and related parameters
+         * calculate gram-schmit orthogonal basis, and related parameters
          * enumerate them and store the shortest one
          */
-        InnerProductR(m, r, GSOsquare[0], GSO[0], GSO[0]);
         for(i = 0; i < beta; i++){
             GSO[i] = MU[P[ind[i]]];
             for(j = 0; j < i; j++){
@@ -113,7 +114,9 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
             sub(GSO[beta], GSO[beta], tvecrr);
             InnerProductR(m, r, vecl[j + 1], GSO[beta], GSO[beta]);
         }
-        GSOsquare[beta] = vecl[beta];
+        vecl[beta] = 0;
+        GSOsquare[beta] = 0;
+        //std::cout << r << std::endl << GSO << std::endl;
 
         // Initialize all variables
         for(i = 0; i < beta; i++){
@@ -132,8 +135,7 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
         while(true){
             // Length of current combination
             sub(vecy[i], coe[i], vecc[i]);
-            abs(vecy[i], vecy[i]);
-            mul(tr, vecy[i], vecy[i]);
+            sqr(tr, vecy[i]);
             mul(tr, tr, GSOsquare[i]);
             add(vecl[i], vecl[i + 1], tr);
             mul(tvecrr, coe[i], MU[P[ind[i]]]);
@@ -141,15 +143,17 @@ static void Enumerate(const long& m, const mat_RR& MU, const long& r, const long
             MaxRowR(m, r, matv[i], tr);
 
             // If current combination is smller in l_\infnity norm
-            if(tr < minmax && i == 1){
+            if(tr < minmax && i == 0){
+            //if(vecl[i] <= radius && i == 0){
                 for(j = 0; j < beta; j++) indices[j] = P[ind[j]];
                 coeff = coe;
+                //radius = vecl[i];
                 minmax = tr;
                 sqr(radius, minmax);
                 mul(radius, m - 1, radius);
             }
 
-            if(vecl[i] <= radius && i > 1){
+            if(vecl[i] <= radius && i > 0){
                 --i;
                 negate(vecc[i], GSOmu[beta][i]);
                 for(j = i + 1; j < beta; j++){
@@ -443,10 +447,10 @@ void LReduction(mat_ZZ& B, const long& beta, mat_ZZ* U) // B' = U * B
     // Reduce until no change happened
     while(s && loop < LoopBound){
         s = false;
-        // Rearrange(m, P, Prod);
+        Rearrange(m, P, Prod);
         for(long i = 0; i < m; i++){
-            Enumerate(m, MU, i, beta, indices, coeff);
-            if(Alter(m, B, Prod, MU, i, beta, indices, coeff, U)) s = true;
+            Enumerate(m, MU, P[i], beta, indices, coeff);
+            if(Alter(m, B, Prod, MU, P[i], beta, indices, coeff, U)) s = true;
         }
         loop++;
     }
